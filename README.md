@@ -25,4 +25,4 @@ Create the environment for a given lab:
 **Tests:** all passing? yes
 
 **Conclusion:**
-- (write 2-3 sentences yourself: what worked, what you learned, any problems)
+- there is no conclusion
