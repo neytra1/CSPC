@@ -22,7 +22,7 @@ Create the environment for a given lab:
 - numpy   : 0.0003 s
 - speed-up: 9493.1 x faster
 
-**Tests:** all passing? yes
+**Tests:** all passing?yes?no?
 
 **Conclusion:**
 - there is no conclusion
