@@ -22,7 +22,10 @@ Create the environment for a given lab:
 - numpy   : 0.0003 s
 - speed-up: 9493.1 x faster
 
-**Tests:** all passing?yes?no?
+**Tests:** all passing? yes
 
 **Conclusion:**
-- there is no conclusion
+- - NumPy was massively faster than the plain Python loop, which showed me why
+  vectorising code matters. I also learned how Git branching and
+  pushing to GitHub works, and why averaging over many runs is needed when
+  dealing with randomness.
