@@ -25,3 +25,24 @@ def test_starts_at_N0():
 #   Check that the simulation's AVERAGE over many seeds is close to the
 #   physical law  N0 * exp(-lam * t).
 #   Which pytest tool compares floating-point values with a tolerance?
+
+
+def test_rejects_negative_rate():
+    # a negative decay constant is unphysical -> simulate must refuse it
+    with pytest.raises(ValueError):
+        simulate(1000, -0.4)
+
+
+def test_matches_law():
+    N0 = 1000
+    lam = 0.1
+    dt = 0.05
+    steps = 200
+    t = dt * steps                      
+
+    finals = [simulate(N0, lam, dt=dt, steps=steps, seed=s)[-1]
+              for s in range(200)]
+    mean_final = np.mean(finals)
+
+    expected = N0 * np.exp(-lam * t)    # the analytical law
+    assert mean_final == pytest.approx(expected, rel=0.05)
