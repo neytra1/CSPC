@@ -25,7 +25,15 @@ Create the environment for a given lab:
 **Tests:** all passing? yes
 
 **Conclusion:**
-- - NumPy was massively faster than the plain Python loop, which showed me why
+- NumPy was massively faster than the plain Python loop, which showed me why
   vectorising code matters. I also learned how Git branching and
   pushing to GitHub works, and why averaging over many runs is needed when
   dealing with randomness.
+
+  ## PW1 --- Lab B
+
+**Data:** The observed counts decrease over time, following an exponential decay shape.
+
+**Comparison:**
+
+**Pipeline:** The Snakemake rule rebuilds figure.png from the CSV and plot.py, and only reruns when one of them has changed.
