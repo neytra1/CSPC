@@ -30,10 +30,18 @@ Create the environment for a given lab:
   pushing to GitHub works, and why averaging over many runs is needed when
   dealing with randomness.
 
-  ## PW1 --- Lab B
+
+## PW1 --- Lab B
 
 **Data:** The observed counts decrease over time, following an exponential decay shape.
 
 **Comparison:**
 
 **Pipeline:** The Snakemake rule rebuilds figure.png from the CSV and plot.py, and only reruns when one of them has changed.
+
+
+## PW2 Lab A: Motion from Tracking Data
+
+- **Measured Mean Acceleration:** -9.81 m/s²
+- **Noise Explanation:** Differentiation amplifies measurement noise because it computes differences over small time intervals, making double-differentiation highly sensitive to small fluctuations.
+- **Integration Findings:** Integrating noisy acceleration back to position suppresses noise via accumulation, matching the original trajectory within < 1 metre.
