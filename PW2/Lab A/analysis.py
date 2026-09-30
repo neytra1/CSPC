@@ -62,3 +62,27 @@ ax3.legend()
 
 plt.tight_layout()
 plt.savefig('motion.png')
+
+
+# Load 2D data
+traj = np.loadtxt('trajectory.csv', delimiter=',', skiprows=1)
+t_2d, x_2d, y_2d = traj[:, 0], traj[:, 1], traj[:, 2]
+
+# Differentiate coordinates
+vx = np.gradient(x_2d, t_2d)
+vy = np.gradient(y_2d, t_2d)
+
+# Speed magnitude
+speed = np.sqrt(vx**2 + vy**2)
+
+# Plot path (x vs y) and speed over time
+fig, (ax_path, ax_speed) = plt.subplots(1, 2, figsize=(10, 4))
+ax_path.plot(x_2d, y_2d)
+ax_path.set_title('2D Path (x vs y)')
+
+ax_speed.plot(t_2d, speed)
+ax_speed.set_title('Speed over Time')
+
+plt.tight_layout()
+plt.savefig('trajectory_2d.png')
+```[cite: 1]
