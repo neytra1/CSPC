@@ -85,4 +85,3 @@ ax_speed.set_title('Speed over Time')
 
 plt.tight_layout()
 plt.savefig('trajectory_2d.png')
-```[cite: 1]
