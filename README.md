@@ -95,3 +95,64 @@ Create the environment for a given lab:
 ### Part 5 (bonus): Titration
 
 - The pH curve jumps and its slope peaks at about 50 mL, which is the equivalence point.
+
+## PW3: Data, Distributions, Testing, and Causation
+
+Scripts and plots are in `PW3/` (`pw3_heart.py`, `pw3_chemicals.py`). Run them from inside `PW3/`.
+
+### Dataset 1: Heart disease (Cleveland)
+
+**Source:** UCI Heart Disease dataset (Detrano et al., 1989), Cleveland subset, via Kaggle. 303 patients, `target` = 1 for heart disease (139) and 0 for healthy (164).
+
+**Session 1: shape and normality** (`distributions.png`, `qqplots.png`)
+
+| Variable | Shape | Shapiro p | Skew / ex. kurtosis | Verdict |
+|---|---|---|---|---|
+| age | one broad hump around 55-60, slightly left-skewed | 0.006 | -0.21 / -0.53 | approximately normal |
+| chol | right-skewed with a long tail up to 564 | 6e-9 | 1.13 / 4.40 | not normal |
+| trestbps | mildly right-skewed, tail up to 200 | 2e-6 | 0.70 / 0.85 | not normal (moderate) |
+| thalach | mildly left-skewed, tail down to 71 | 7e-5 | -0.53 / -0.07 | roughly normal |
+
+- With about 300 points, Shapiro-Wilk rejects even tiny deviations from normality, so I did not rely on the p-value alone. I also used Q-Q plots, skewness and kurtosis. `age` and `thalach` follow the Q-Q line closely, while `chol` and `trestbps` bend away at the tails.
+
+**Session 2: is the effect real?**
+- **Method:** I compared `thalach` between the two `target` groups with **Welch's t-test**, because the variances differ (Levene p = 0.023) and the disease group is normal while the healthy group is only mildly non-normal. With more than 100 patients per group the test is robust. I confirmed it with the non-parametric **Mann-Whitney U** test.
+- **Result:** Welch t = -7.86, p = 9e-14. Mann-Whitney p = 2e-13. Cohen's d = -0.92 (large effect).
+- **Conclusion:** The groups genuinely differ. Patients with heart disease reach a lower maximum heart rate, about 19 bpm lower.
+
+**Uncertainty on the means** (`means_ci.png`)
+
+| Group | Mean thalach | SEM | 95% CI |
+|---|---|---|---|
+| disease | 139.3 bpm | 1.92 | 135.5 to 143.0 |
+| healthy | 158.4 bpm | 1.50 | 155.4 to 161.3 |
+
+- The two confidence intervals do not overlap at all, so the plot agrees with the test.
+
+**Age vs thalach** (`age_vs_thalach.png`)
+- Pearson r = -0.39 (p = 1e-12), Spearman rho = -0.39, slope about -1 bpm per year. Older patients tend to have a lower maximum heart rate. The relationship is moderate with a lot of scatter, since age explains only about 15% of the variance.
+
+**Bonus: how unpredictable is a category?**
+- I used Shannon entropy, H = -sum(p log2 p).
+- `target`: proportions 0.54 / 0.46, H = 0.995 bits out of a maximum of 1. It is almost perfectly balanced, so it is nearly as hard to guess as a coin flip.
+- `sex`: proportions 0.68 / 0.32, H = 0.905 bits. It is more lopsided, so guessing "male" is right 68% of the time.
+
+### Dataset 2: Chemical-exposure mystery
+
+**Data note:** `chemicals cancer.csv` was not available on Moodle. I generated a synthetic stand-in with the same structure (1000 patients, benzene, cadmium, pollution index, age, malignancy score) using `make_standin_chemicals.py`. The numbers below come from that stand-in, not from the official file. The method is the same and can be re-run on the real file with `python pw3_chemicals.py`.
+
+**Naive analysis (task 6)**
+- Correlation with malignancy: benzene r = 0.72, cadmium r = 0.80.
+- Taken at face value, **cadmium** looks like the cause because it is more strongly associated.
+
+**Looking again (task 7)** (`confounding.png`)
+- Suspected third variable: the pollution index. Cadmium correlates 0.96 with it, so cadmium may just be a stand-in for pollution.
+- I restricted the data to patients with a similar pollution index (the 40th to 60th percentile, n = 199) and recomputed the correlations. I also computed partial correlations by removing the effect of pollution from both variables.
+
+| | benzene | cadmium |
+|---|---|---|
+| Naive r | 0.72 | 0.80 |
+| Restricted to similar pollution | 0.70 | 0.09 (p = 0.21) |
+| Partial r (pollution removed) | 0.63 | 0.00 |
+
+**Conclusion:** **Benzene is the real cause of malignancy.** Its association stays strong when pollution is held fixed. Cadmium only looked guilty: its association disappears once patients with the same pollution level are compared, because pollution drives both the cadmium level and the malignancy. This is a case where correlation is not causation.
