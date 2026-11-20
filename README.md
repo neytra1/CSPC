@@ -156,3 +156,214 @@ Scripts and plots are in `PW3/` (`pw3_heart.py`, `pw3_chemicals.py`). Run them f
 | Partial r (pollution removed) | 0.63 | 0.00 |
 
 **Conclusion:** **Benzene is the real cause of malignancy.** Its association stays strong when pollution is held fixed. Cadmium only looked guilty: its association disappears once patients with the same pollution level are compared, because pollution drives both the cadmium level and the malignancy. This is a case where correlation is not causation.
+
+# PW4 — Machine Learning: Supervised and Unsupervised
+
+Reproduce everything with one command (from this folder):
+
+```bash
+snakemake --cores 1
+```
+
+Data: Yeh, I-C. (1998), *Concrete Compressive Strength*, UCI ML Repository. Forina et al., *Wine*, UCI ML Repository (loaded via scikit-learn).
+
+---
+
+# Session A — Concrete strength
+
+## A1. Variables and units
+| Variable | Unit |
+|---|---|
+| cement | kg/m³ |
+| slag | kg/m³ |
+| ash | kg/m³ |
+| water | kg/m³ |
+| superplastic | kg/m³ |
+| coarse_agg | kg/m³ |
+| fine_agg | kg/m³ |
+| age | days |
+| strength (target) | MPa |
+
+1030 laboratory tests, 8 inputs, 1 target. (TODO: confirm with `concrete.variables`.)
+
+## A2. Cleaning
+- Duplicate rows found: **TODO** — removed. Missing values: **TODO**.
+- Rows after cleaning: **TODO**.
+- Why a duplicate is a problem for a train/test split: TODO (own words: the same row can be in both parts, so the test set is no longer unseen data and the score is too optimistic).
+- Inputs on much larger scales: TODO (see `df.describe()`).
+- Plots: ![](figures/A2_scatter.png)
+- Strength vs cement: TODO. Strength vs age: TODO.
+
+## A3. Split
+Train: TODO rows, test: TODO rows (test_size=0.2, random_state=42).
+
+## A4. Linear regression
+Equation (MPa): `strength = TODO + TODO·cement + ...`
+
+| train RMSE | test RMSE | test MAE | train R² | train adj R² | test R² |
+|---|---|---|---|---|---|
+| TODO | TODO | TODO | TODO | TODO | TODO |
+
+![](figures/A4_residuals_age.png)
+
+Pattern in the residuals: TODO. What it tells about the model: TODO.
+
+## A5. Polynomial regression
+| degree | p | train RMSE | test RMSE | train R² | train adj R² | test R² |
+|---|---|---|---|---|---|---|
+| 1 | TODO | | | | | |
+| 2 | TODO | | | | | |
+| 3 | TODO | | | | | |
+| 4 | TODO | | | | | |
+
+- Chosen degree and why: TODO
+- What happens at degree 4 (p vs number of training rows): TODO
+- Does adjusted R² alone protect from overfitting? TODO
+
+## A6. Classification (strength ≥ 40 MPa)
+Class proportions: TODO.
+
+### KNN
+![](figures/A6_knn_sweep.png)
+
+| K | train acc | test acc |
+|---|---|---|
+| 1 | | |
+| 3 | | |
+| 5 | | |
+| 7 | | |
+| 15 | | |
+| 25 | | |
+| 51 | | |
+| 101 | | |
+
+- Chosen K and why: TODO
+- Test accuracy with scaler vs without: TODO / TODO — why: TODO
+- Five splits (random_state 0–4), test accuracies: TODO; spread: TODO. Which differences are meaningful: TODO
+
+### Decision tree
+![](figures/A6_tree_sweep.png)
+
+| max_depth | leaves | train acc | test acc |
+|---|---|---|---|
+| 1 | | | |
+| 2 | | | |
+| 3 | | | |
+| 4 | | | |
+| 5 | | | |
+| 6 | | | |
+| 8 | | | |
+| None | | | |
+
+- Gap between train and test as the tree grows: TODO
+- Chosen depth and why (readability vs accuracy): TODO
+- Top two levels of the tree (paste `export_text` output):
+```
+TODO
+```
+- Root question and does it make physical sense: TODO
+
+## A7. Metrics
+| model | TP | FP | FN | TN | accuracy | precision | recall | F1 |
+|---|---|---|---|---|---|---|---|---|
+| KNN | | | | | | | | |
+| Tree | | | | | | | | |
+
+- Dangerous mistake on a construction site: TODO (FP or FN) — controlled by metric: TODO
+
+Threshold study (model: KNN):
+| threshold | TP | FP | FN | TN | precision | recall |
+|---|---|---|---|---|---|---|
+| 0.3 | | | | | | |
+| 0.5 | | | | | | |
+| 0.7 | | | | | | |
+| 0.9 | | | | | | |
+
+- Chosen threshold and why: TODO. What a safer threshold costs: TODO
+
+## A8. Feature importance
+![](figures/A8_importance.png)
+
+| input | raw coef | std coef | tree importance | permutation KNN | permutation tree |
+|---|---|---|---|---|---|
+(paste from `results/A_importance.csv`)
+
+- Raw vs standardised ranking, and why they differ: TODO
+- Do the methods agree on the top 2–3 inputs: TODO
+- Consistent with water/cement ratio and age: TODO
+- Does high importance mean changing the ingredient changes strength? TODO (see PW3: importance is not causation)
+
+## Bonus — physics features
+| model | features | test R² |
+|---|---|---|
+| log(age) | 8 | TODO |
+| log(age) + w/b | 8 | TODO |
+| polynomial degree 2 (A5) | TODO | TODO |
+
+Domain knowledge vs model flexibility: TODO
+
+---
+
+# Session B — Wine chemistry
+
+## B1. Data
+Source and what is measured: TODO (178 wines, 3 cultivars, 13 chemical measurements, Italy). Largest ranges/std: TODO. Smallest: TODO.
+
+## B2. PCA on raw data
+- Explained variance ratio of PC1: TODO
+- Measurement dominating PC1 and why (link to B1): TODO
+- Is it "the main chemical difference"? TODO
+
+## B3. PCA on scaled data
+![](figures/B3_scree.png)
+
+| PC | ratio | cumulative |
+|---|---|---|
+| 1 | | |
+| ... | | |
+
+- Components for 90%: TODO. PC1–PC2 keep: TODO.
+- PC1 loadings (positive side / negative side, in chemical words): TODO
+- PC2 loadings: TODO
+- Groups guessed by eye: TODO
+
+![](figures/B3_pc_plane.png)
+
+## B4. K-Means
+- (a) Inertias for n_init=1, random_state 0–7: TODO. Why they differ, what n_init=10 does: TODO
+- (b) Elbow: ![](figures/B4_elbow.png) Chosen k: TODO, because TODO. Why not minimise inertia: TODO (inertia always decreases as k grows; k = n gives 0).
+
+## B5. Clusters
+Sizes: TODO. Centres in real units (paste table). One sentence of chemistry per cluster:
+- Cluster 0: TODO
+- Cluster 1: TODO
+- Cluster 2: TODO
+
+![](figures/B5_clusters.png)
+
+## B6. Reveal
+| version | agreement |
+|---|---|
+| (i) scaled | TODO |
+| (ii) raw | TODO |
+| (iii) PC1–PC2 of scaled | TODO |
+
+Explanation of each difference (B2, B3): TODO. What the best agreement says about the grape varieties: TODO.
+
+## Bonus — what do labels buy you?
+| model | test accuracy |
+|---|---|
+| KNN scaled | TODO |
+| scaler + PCA(2) + KNN | TODO |
+
+Why the comparison with B6 is not fair: TODO
+
+---
+
+# B7. Snakemake
+Command reproducing all of PW4: `snakemake --cores 1`
+
+1. `snakemake -n` plan: TODO
+2. After deleting `data/` and `results/`: TODO
+3. Running again reports: TODO — because TODO
+4. After changing K in `sessionA.py`: reruns TODO; does not rerun TODO — `fetch` is not rerun because TODO
