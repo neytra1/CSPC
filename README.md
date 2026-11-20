@@ -172,198 +172,303 @@ Data: Yeh, I-C. (1998), *Concrete Compressive Strength*, UCI ML Repository. Fori
 # Session A — Concrete strength
 
 ## A1. Variables and units
-| Variable | Unit |
-|---|---|
-| cement | kg/m³ |
-| slag | kg/m³ |
-| ash | kg/m³ |
-| water | kg/m³ |
-| superplastic | kg/m³ |
-| coarse_agg | kg/m³ |
-| fine_agg | kg/m³ |
-| age | days |
-| strength (target) | MPa |
+| Variable | Meaning | Unit |
+|---|---|---|
+| cement | Portland cement | kg/m³ |
+| slag | blast furnace slag | kg/m³ |
+| ash | fly ash | kg/m³ |
+| water | water | kg/m³ |
+| superplastic | superplasticizer additive | kg/m³ |
+| coarse_agg | coarse aggregate (gravel) | kg/m³ |
+| fine_agg | fine aggregate (sand) | kg/m³ |
+| age | age of the sample | days |
+| strength (target) | compressive strength | MPa |
 
-1030 laboratory tests, 8 inputs, 1 target. (TODO: confirm with `concrete.variables`.)
+The dataset has 1030 laboratory tests (Yeh, 1998, UCI id 165). The new column names were assigned by position and checked against `concrete.variables`.
 
 ## A2. Cleaning
-- Duplicate rows found: **TODO** — removed. Missing values: **TODO**.
-- Rows after cleaning: **TODO**.
-- Why a duplicate is a problem for a train/test split: TODO (own words: the same row can be in both parts, so the test set is no longer unseen data and the score is too optimistic).
-- Inputs on much larger scales: TODO (see `df.describe()`).
+- Duplicate rows found: **25**, removed. Missing values: **0** in every column.
+- Rows after cleaning: **1005**.
+- Why a duplicate is a problem for a split: the same row can end up in both the training and the test set. The model has then already seen that test row, so the test score is too optimistic and does not measure generalisation.
+- Inputs on much larger scales: coarse_agg (mean 974), fine_agg (773), water (182) and cement (279) are in the hundreds, while superplastic (mean 6, max 32) is tiny and age has a mean of 46 days. This is why scaling is needed later.
 - Plots: ![](figures/A2_scatter.png)
-- Strength vs cement: TODO. Strength vs age: TODO.
+- Strength vs cement: strength tends to increase with cement, but with a large scatter, so cement alone does not determine it. Strength vs age: strength rises quickly in the first weeks and then flattens, a curve and not a straight line. (Check this against your own figure.)
 
 ## A3. Split
-Train: TODO rows, test: TODO rows (test_size=0.2, random_state=42).
+Train: **804** rows, test: **201** rows (test_size=0.2, random_state=42).
 
 ## A4. Linear regression
-Equation (MPa): `strength = TODO + TODO·cement + ...`
+Equation (strength in MPa; coefficients in MPa per kg/m³ for ingredients and MPa per day for age):
+
+`strength = −23.389 + 0.1167·cement + 0.0981·slag + 0.0846·ash − 0.1314·water + 0.3315·superplastic + 0.0155·coarse_agg + 0.0206·fine_agg + 0.1106·age`
 
 | train RMSE | test RMSE | test MAE | train R² | train adj R² | test R² |
 |---|---|---|---|---|---|
-| TODO | TODO | TODO | TODO | TODO | TODO |
+| 10.002 | 11.191 | 8.895 | 0.610 | 0.606 | 0.580 |
 
 ![](figures/A4_residuals_age.png)
 
-Pattern in the residuals: TODO. What it tells about the model: TODO.
+Pattern in the residuals: the residuals are not randomly scattered around zero; they follow a curve against age (log axis). (Describe what you see in your own figure: where they are positive and where negative.) A systematic pattern means the model is missing a structure in the data. Here a straight line in age is the wrong shape, because strength grows roughly with log(age). It is an error of the model (bias), not noise, and a more flexible model or better features would remove it.
 
 ## A5. Polynomial regression
 | degree | p | train RMSE | test RMSE | train R² | train adj R² | test R² |
 |---|---|---|---|---|---|---|
-| 1 | TODO | | | | | |
-| 2 | TODO | | | | | |
-| 3 | TODO | | | | | |
-| 4 | TODO | | | | | |
+| 1 | 8 | 10.002 | 11.191 | 0.610 | 0.606 | 0.580 |
+| 2 | 44 | 6.989 | 8.308 | 0.809 | 0.798 | 0.769 |
+| 3 | 164 | 4.396 | 5.952 | 0.925 | 0.905 | 0.881 |
+| 4 | 494 | 2.334 | 39.410 | 0.979 | 0.945 | −4.206 |
 
-- Chosen degree and why: TODO
-- What happens at degree 4 (p vs number of training rows): TODO
-- Does adjusted R² alone protect from overfitting? TODO
+- **Chosen degree: 3.** It has the lowest test RMSE (5.95 MPa) and the highest test R² (0.881). Degree 1 and 2 still underfit (high error on both sets). Degree 3 uses 164 features for 804 training rows, which is acceptable because the test error confirms it.
+- **Degree 4:** it has p = 494 features for only n = 804 training rows. With almost as many parameters as rows, the model memorises the training data (train RMSE 2.33) and fails on new data: test RMSE 39.4 and test R² = −4.2, which is far worse than always predicting the mean strength.
+- **Does adjusted R² alone protect?** No. At degree 4 the train adjusted R² is still 0.945 and looks excellent, although the model is useless on the test set. Adjusted R² only penalises the number of features on the training data, so the test set is needed to detect overfitting.
 
 ## A6. Classification (strength ≥ 40 MPa)
-Class proportions: TODO.
+Class proportions: 0 (below 40 MPa): **0.642**, 1 (reaches 40 MPa): **0.358**. Split stratified on the class.
 
 ### KNN
 ![](figures/A6_knn_sweep.png)
 
 | K | train acc | test acc |
 |---|---|---|
-| 1 | | |
-| 3 | | |
-| 5 | | |
-| 7 | | |
-| 15 | | |
-| 25 | | |
-| 51 | | |
-| 101 | | |
+| 1 | 0.998 | 0.831 |
+| 3 | 0.934 | 0.801 |
+| 5 | 0.907 | 0.816 |
+| 7 | 0.893 | 0.836 |
+| 15 | 0.848 | 0.826 |
+| 25 | 0.841 | 0.806 |
+| 51 | 0.805 | 0.781 |
+| 101 | 0.757 | 0.736 |
 
-- Chosen K and why: TODO
-- Test accuracy with scaler vs without: TODO / TODO — why: TODO
-- Five splits (random_state 0–4), test accuracies: TODO; spread: TODO. Which differences are meaningful: TODO
+- **Chosen K = 7.** It has the highest test accuracy (0.836). K = 1 memorises the training set (train 0.998) and is sensitive to noise, and a very large K (51, 101) underfits, because both accuracies drop. K = 7 is a compromise with a moderate train–test gap.
+- **With vs without scaler** at K = 7: test accuracy **0.836 vs 0.821**. KNN uses raw distances, so without scaling the inputs with large numerical values (aggregates, water) dominate the distance.
+- **Five splits** (random_state 0–4), test accuracies: 0.801, 0.851, 0.821, 0.836, 0.806. Mean 0.823, std 0.019, min–max spread 0.050.
+- **Which differences are meaningful:** a spread of 0.05 between splits is larger than the scaler difference (0.015) and larger than the difference between K = 5, 7, 15 and 25 (about 0.03). So these differences are within the noise from the choice of split and cannot be considered meaningful. Only large differences (K = 101 at 0.736, or the tree of depth 1–2 at 0.70) are clearly real.
 
 ### Decision tree
 ![](figures/A6_tree_sweep.png)
 
 | max_depth | leaves | train acc | test acc |
 |---|---|---|---|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | | | |
-| 8 | | | |
-| None | | | |
+| 1 | 2 | 0.755 | 0.701 |
+| 2 | 4 | 0.755 | 0.701 |
+| 3 | 8 | 0.840 | 0.796 |
+| 4 | 16 | 0.869 | 0.826 |
+| 5 | 26 | 0.889 | 0.846 |
+| 6 | 38 | 0.930 | 0.841 |
+| 8 | 61 | 0.973 | 0.856 |
+| None | 80 | 0.998 | 0.881 |
 
-- Gap between train and test as the tree grows: TODO
-- Chosen depth and why (readability vs accuracy): TODO
-- Top two levels of the tree (paste `export_text` output):
+- **Gap between train and test:** it grows with depth, from about 0.05 at depth 1–4 to 0.09 at depth 6 and 0.117 for the unlimited tree (train 0.998). The deeper tree memorises the training data.
+- **Chosen depth = 4** (16 leaves, test accuracy 0.826). The unlimited tree has the best test accuracy here (0.881), but it has 80 leaves, so it cannot be read or explained, and its gap is largest. With depth 4 I lose about 5 points of accuracy compared with the unlimited tree and gain a tree that a person can read, check against physics and explain to an engineer.
+- Top two levels of the tree:
 ```
-TODO
+|--- age <= 42.00
+|   |--- cement <= 257.70
+|   |   |--- water <= 156.20
+|   |   |--- water >  156.20
+|   |--- cement >  257.70
+|   |   |--- superplastic <= 0.95
+|   |   |--- superplastic >  0.95
+|--- age >  42.00
+|   |--- superplastic <= 6.45
+|   |   |--- fine_agg <= 749.55
+|   |   |--- fine_agg >  749.55
+|   |--- superplastic >  6.45
+|   |   |--- cement <= 203.35
+|   |   |--- cement >  203.35
 ```
-- Root question and does it make physical sense: TODO
+- **Root question:** "Is the age ≤ 42 days?" Yes, it makes physical sense. Cement hydration is progressive, so young concrete has not yet developed its strength, and age is the strongest separator. Within young concrete the next questions are about cement (more cement, more strength) and water (less water, denser and stronger concrete), which is also what engineers expect.
 
 ## A7. Metrics
 | model | TP | FP | FN | TN | accuracy | precision | recall | F1 |
 |---|---|---|---|---|---|---|---|---|
-| KNN | | | | | | | | |
-| Tree | | | | | | | | |
+| KNN (K=7) | 54 | 15 | 18 | 114 | 0.836 | 0.783 | 0.750 | 0.766 |
+| Tree (depth=4) | 58 | 21 | 14 | 108 | 0.826 | 0.734 | 0.806 | 0.768 |
 
-- Dangerous mistake on a construction site: TODO (FP or FN) — controlled by metric: TODO
+- **Dangerous mistake:** the **false positive** (FP): the model says the concrete reaches 40 MPa, but it does not. It could be used in a structure that is too weak. A false negative (FN) only wastes good concrete. The metric that controls FP is **precision** = TP / (TP + FP).
 
-Threshold study (model: KNN):
+Threshold study (KNN, K = 7):
+
 | threshold | TP | FP | FN | TN | precision | recall |
 |---|---|---|---|---|---|---|
-| 0.3 | | | | | | |
-| 0.5 | | | | | | |
-| 0.7 | | | | | | |
-| 0.9 | | | | | | |
+| 0.3 | 61 | 23 | 11 | 106 | 0.726 | 0.847 |
+| 0.5 | 54 | 15 | 18 | 114 | 0.783 | 0.750 |
+| 0.7 | 39 | 11 | 33 | 118 | 0.780 | 0.542 |
+| 0.9 | 18 | 1 | 54 | 128 | 0.947 | 0.250 |
 
-- Chosen threshold and why: TODO. What a safer threshold costs: TODO
+- **Chosen threshold: 0.9.** Because an FP is the dangerous mistake, I want the highest precision: at 0.9 only 1 of 19 concrete mixes announced as "≥ 40 MPa" is wrong (precision 0.947). With K = 7 the probabilities are multiples of 1/7, so 0.9 means that all 7 neighbours agree. Threshold 0.7 does not help (precision 0.780, the same as 0.5), so it only costs recall.
+- **What a safer threshold costs:** recall falls from 0.750 to 0.250. The model finds only 18 of the 72 mixes that really reach 40 MPa and rejects 54 good ones (FN), so the concrete is wasted or must be tested again. Safety is paid for with cost and with missed good mixes.
+
+The final metrics table is saved in `results/A_metrics.csv`.
 
 ## A8. Feature importance
 ![](figures/A8_importance.png)
 
-| input | raw coef | std coef | tree importance | permutation KNN | permutation tree |
+| input | raw coef | std coef (MPa/std) | tree importance | permutation KNN | permutation tree |
 |---|---|---|---|---|---|
-(paste from `results/A_importance.csv`)
+| cement | 0.117 | 12.119 | 0.289 | 0.165 | 0.193 |
+| slag | 0.098 | 8.437 | 0.020 | 0.055 | 0.000 |
+| ash | 0.085 | 5.440 | 0.000 | 0.016 | 0.000 |
+| water | −0.131 | −2.828 | 0.037 | 0.068 | 0.010 |
+| superplastic | 0.331 | 1.971 | 0.193 | 0.066 | 0.171 |
+| coarse_agg | 0.016 | 1.199 | 0.008 | 0.038 | 0.000 |
+| fine_agg | 0.021 | 1.670 | 0.086 | 0.081 | 0.066 |
+| age | 0.111 | 6.895 | 0.367 | 0.176 | 0.134 |
 
-- Raw vs standardised ranking, and why they differ: TODO
-- Do the methods agree on the top 2–3 inputs: TODO
-- Consistent with water/cement ratio and age: TODO
-- Does high importance mean changing the ingredient changes strength? TODO (see PW3: importance is not causation)
+- **Raw vs standardised ranking:** by raw |coef| the order is superplastic, water, cement, age, slag, ash, fine_agg, coarse_agg. By standardised |coef| it is cement, slag, age, ash, water, superplastic, fine_agg, coarse_agg. They differ because the raw coefficients have different units and depend on the scale of each input. Superplastic is in a small numerical range (std 5.9 kg/m³), so its coefficient per kg is large (0.33), but one standard deviation changes the strength by only 2 MPa. Age has a small coefficient per day (0.11) but a large spread (std 64 days), so its effect per standard deviation is large (6.9 MPa). Only the standardised coefficients can be compared.
+- **Do methods agree?** Yes on the top inputs: **cement and age** are in the top positions for the tree importances, for both permutation importances and for the standardised coefficients (where slag is also high). The tree also uses superplastic strongly (0.193), and KNN gives fine_agg some weight.
+- **Consistent with water/cement ratio and age?** Age yes, it is among the top. Water has a negative coefficient as expected (more water, lower strength), but it ranks low alone (std coef −2.8, tree 0.037). Engineers talk about the *ratio* water/cement, not water alone, and the tree gets this information from cement and superplastic (a superplasticizer allows less water). So the ranking is partly consistent.
+- **Does high importance mean that changing the ingredient changes the strength?** No (PW3). Importance measures what the model uses to predict, not a causal effect. The inputs are correlated (for instance superplastic and water are linked by the mix design), so importance can be shared or hidden between them, and an input can be important only because it is a proxy for another one. To know the effect of changing an ingredient, we would need a controlled experiment.
 
 ## Bonus — physics features
 | model | features | test R² |
 |---|---|---|
-| log(age) | 8 | TODO |
-| log(age) + w/b | 8 | TODO |
-| polynomial degree 2 (A5) | TODO | TODO |
+| linear, raw inputs (A4) | 8 | 0.580 |
+| linear, log(age) | 8 | 0.804 |
+| linear, log(age) + w/b | 8 | 0.806 |
+| polynomial degree 2 (A5) | 44 | 0.769 |
+| polynomial degree 3 (A5) | 164 | 0.881 |
 
-Domain knowledge vs model flexibility: TODO
+Replacing age by log(age) raises the test R² from 0.58 to 0.80 with no extra features, which is better than the degree-2 polynomial with 44 features. The water/binder ratio adds almost nothing on top (0.806). Degree 3 is still better (0.881), but it needs 164 features and is hard to interpret. This suggests that domain knowledge (the right transformation) gives a large part of the gain at a very low complexity, and flexibility gives the rest at the cost of many parameters and the risk of overfitting.
 
 ---
 
 # Session B — Wine chemistry
 
 ## B1. Data
-Source and what is measured: TODO (178 wines, 3 cultivars, 13 chemical measurements, Italy). Largest ranges/std: TODO. Smallest: TODO.
+The data is the UCI Wine dataset (Forina et al.), loaded with `load_wine`. It has 178 wines from the same region of Italy, from 3 cultivars (59, 71 and 48 wines). Each wine has 13 chemical measurements: alcohol, malic acid, ash, alkalinity of ash, magnesium, total phenols, flavanoids, nonflavanoid phenols, proanthocyanins, colour intensity, hue, OD280/OD315 of diluted wines and proline.
+
+The measurements are on very different scales:
+- Largest range and standard deviation: **proline** (278–1680, std 314.9), then **magnesium** (70–162, std 14.3), then alcalinity of ash (std 3.3).
+- Smallest: **nonflavanoid phenols** (std 0.12), **hue** (std 0.23) and **ash** (std 0.27).
 
 ## B2. PCA on raw data
-- Explained variance ratio of PC1: TODO
-- Measurement dominating PC1 and why (link to B1): TODO
-- Is it "the main chemical difference"? TODO
+- Explained variance ratio of PC1: **0.9981** (99.8%).
+- Sorted loadings of PC1: proline **0.9998**, magnesium 0.018, alcalinity of ash −0.005, all others below 0.003.
+- PCA does not rescale, and proline has by far the largest variance (std 315 against at most 14 for any other measurement), so PC1 is almost just the proline axis. It reflects the units of the measurements, not the chemistry.
+- I would not accept this PC1 as "the main chemical difference between the wines". The other 12 measurements are practically ignored.
 
 ## B3. PCA on scaled data
 ![](figures/B3_scree.png)
 
 | PC | ratio | cumulative |
 |---|---|---|
-| 1 | | |
-| ... | | |
+| 1 | 0.3620 | 0.3620 |
+| 2 | 0.1921 | 0.5541 |
+| 3 | 0.1112 | 0.6653 |
+| 4 | 0.0707 | 0.7360 |
+| 5 | 0.0656 | 0.8016 |
+| 6 | 0.0494 | 0.8510 |
+| 7 | 0.0424 | 0.8934 |
+| 8 | 0.0268 | 0.9202 |
+| 9 | 0.0222 | 0.9424 |
+| 10 | 0.0193 | 0.9617 |
+| 11 | 0.0174 | 0.9791 |
+| 12 | 0.0130 | 0.9920 |
+| 13 | 0.0080 | 1.0000 |
 
-- Components for 90%: TODO. PC1–PC2 keep: TODO.
-- PC1 loadings (positive side / negative side, in chemical words): TODO
-- PC2 loadings: TODO
-- Groups guessed by eye: TODO
+- Components needed for 90% of the variance: **8**. The PC1–PC2 plane keeps **55.4%**.
+- Loadings, sorted:
 
-![](figures/B3_pc_plane.png)
+| measurement | PC1 | measurement | PC2 |
+|---|---|---|---|
+| nonflavanoid_phenols | −0.299 | hue | −0.279 |
+| malic_acid | −0.245 | od280/od315 | −0.164 |
+| alcalinity_of_ash | −0.239 | alcalinity_of_ash | −0.011 |
+| color_intensity | −0.089 | flavanoids | −0.003 |
+| ash | −0.002 | nonflavanoid_phenols | 0.029 |
+| magnesium | 0.142 | proanthocyanins | 0.039 |
+| alcohol | 0.144 | total_phenols | 0.065 |
+| proline | 0.287 | malic_acid | 0.225 |
+| hue | 0.297 | magnesium | 0.300 |
+| proanthocyanins | 0.313 | ash | 0.316 |
+| od280/od315 | 0.376 | proline | 0.365 |
+| total_phenols | 0.395 | alcohol | 0.484 |
+| flavanoids | 0.423 | color_intensity | 0.530 |
+
+- **PC1** pushes a wine to the positive side with many phenolic compounds (flavanoids, total phenols, proanthocyanins), a high OD280 value, high hue and high proline. It pushes to the negative side with nonflavanoid phenols, malic acid and alkalinity of ash. So PC1 is roughly "phenol-rich wines against acidic, low-phenol wines".
+- **PC2** goes positive with colour intensity, alcohol, proline, ash and magnesium, and negative with hue and OD280. So PC2 is roughly "strong, dark, alcoholic wines against paler wines".
+- Scatter in one colour ![](figures/B3_pc_plane.png): by eye I see **3 groups**.
 
 ## B4. K-Means
-- (a) Inertias for n_init=1, random_state 0–7: TODO. Why they differ, what n_init=10 does: TODO
-- (b) Elbow: ![](figures/B4_elbow.png) Chosen k: TODO, because TODO. Why not minimise inertia: TODO (inertia always decreases as k grows; k = n gives 0).
+**(a)** Inertia for k = 3, n_init = 1:
 
-## B5. Clusters
-Sizes: TODO. Centres in real units (paste table). One sentence of chemistry per cluster:
-- Cluster 0: TODO
-- Cluster 1: TODO
-- Cluster 2: TODO
+| random_state | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| inertia | 1277.93 | 1278.76 | 1277.93 | 1277.93 | 1279.97 | 1278.76 | 1282.46 | 1278.76 |
+
+The values differ because each run starts from different random centres, and K-Means only finds a local minimum of the inertia, which depends on the start. With `n_init=10` the algorithm runs 10 times from different starts and keeps the run with the lowest inertia, so the result is much less dependent on a lucky or unlucky start.
+
+**(b)** Inertia for k = 1…10 (n_init = 10, random_state = 0): ![](figures/B4_elbow.png)
+
+| k | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| inertia | 2314.0 | 1659.0 | 1277.9 | 1180.7 | 1110.4 | 1044.5 | 996.0 | 944.6 | 913.2 | 864.6 |
+
+The curve drops steeply up to k = 3 (−655, then −381) and then flattens (−97 from k = 3 to 4, about −70 after). The elbow is at **k = 3**. Inertia can't be minimised directly because it always decreases when k grows. With k = 178 (one cluster per wine) it would be 0, which is useless.
+
+## B5. Clusters (k = 3, scaled data)
+Cluster sizes: **65, 51, 62**.
+
+| measurement | cluster 0 | cluster 1 | cluster 2 |
+|---|---|---|---|
+| alcohol | 12.25 | 13.13 | 13.68 |
+| malic_acid | 1.90 | 3.31 | 2.00 |
+| ash | 2.23 | 2.42 | 2.47 |
+| alcalinity_of_ash | 20.06 | 21.24 | 17.46 |
+| magnesium | 92.74 | 98.67 | 107.97 |
+| total_phenols | 2.25 | 1.68 | 2.85 |
+| flavanoids | 2.05 | 0.82 | 3.00 |
+| nonflavanoid_phenols | 0.36 | 0.45 | 0.29 |
+| proanthocyanins | 1.62 | 1.15 | 1.92 |
+| color_intensity | 2.97 | 7.23 | 5.45 |
+| hue | 1.06 | 0.69 | 1.07 |
+| od280/od315 | 2.80 | 1.70 | 3.16 |
+| proline | 510.2 | 619.1 | 1100.2 |
+
+- **Cluster 0 (65 wines):** light wines with the lowest alcohol (12.25) and proline (510) and a pale colour (colour intensity 2.97).
+- **Cluster 1 (51 wines):** dark, acidic wines with the highest malic acid (3.31) and colour intensity (7.23), but the lowest flavanoids (0.82), hue and OD280.
+- **Cluster 2 (62 wines):** rich wines with the highest alcohol (13.68), proline (1100) and flavanoids (3.00) and the lowest nonflavanoid phenols.
 
 ![](figures/B5_clusters.png)
 
-## B6. Reveal
+## B6. The reveal
+Crosstab, scaled data (rows: true cultivar, columns: cluster):
+
+| cultivar | cluster 0 | cluster 1 | cluster 2 |
+|---|---|---|---|
+| 0 | 0 | 0 | 59 |
+| 1 | 65 | 3 | 3 |
+| 2 | 0 | 48 | 0 |
+
 | version | agreement |
 |---|---|
-| (i) scaled | TODO |
-| (ii) raw | TODO |
-| (iii) PC1–PC2 of scaled | TODO |
+| (i) scaled data | 0.966 |
+| (ii) raw data | 0.702 |
+| (iii) PC1–PC2 of scaled data | 0.966 |
 
-Explanation of each difference (B2, B3): TODO. What the best agreement says about the grape varieties: TODO.
+- **(ii) raw is much worse** (0.702 against 0.966). As in B2, proline has by far the largest variance and dominates the Euclidean distances, so K-Means effectively clusters on proline (and magnesium) only and ignores the other measurements.
+- **(i) scaled is best.** After scaling, every measurement has the same weight, so the clusters use the full chemistry.
+- **(iii) PC1–PC2 equals (i)** (0.966), even though the two components keep only 55.4% of the variance (B3). The cultivar structure lies in the directions of largest variance of the scaled data, and the other components mostly add noise.
+- K-Means never saw the cultivars, yet 172 of 178 wines are grouped with their own cultivar. So the three grape varieties have clearly different chemistry (mainly phenols, colour, alcohol and proline).
 
 ## Bonus — what do labels buy you?
 | model | test accuracy |
 |---|---|
-| KNN scaled | TODO |
-| scaler + PCA(2) + KNN | TODO |
+| KNN scaled (13 features) | 0.933 |
+| scaler + PCA(2) + KNN | 0.933 |
 
-Why the comparison with B6 is not fair: TODO
+These supervised accuracies (0.933) are not better than the unsupervised agreement (0.966), but the comparison is not fair:
+- the supervised models used the labels to learn, K-Means did not;
+- the test set has only 45 wines (25%), so one wine changes the accuracy by about 2.2 points, while the agreement is computed on all 178 wines;
+- the agreement score gives every cluster its majority cultivar, which is measured on the same data used for clustering, so it is a more favourable score than accuracy on unseen data.
 
 ---
 
 # B7. Snakemake
 Command reproducing all of PW4: `snakemake --cores 1`
 
-1. `snakemake -n` plan: TODO
-2. After deleting `data/` and `results/`: TODO
-3. Running again reports: TODO — because TODO
-4. After changing K in `sessionA.py`: reruns TODO; does not rerun TODO — `fetch` is not rerun because TODO
+1. `snakemake -n` plan: the dry run lists the jobs that would run (`fetch`, `session_a`, `session_b` and `all`), in the order fetch → session_a, with session_b independent, and it runs nothing. `session_a` comes after `fetch` because its input `data/concrete.csv` is the output of `fetch`.
+2. After deleting `data/` and `results/` and running `snakemake --cores 1`: all four rules run (`fetch` creates `data/concrete.csv`, `session_a` and `session_b` create the two CSV files in `results/`, and `all` is done when both exist). Snakemake created the missing folders itself.
+3. Running the same command again: Snakemake reports "Nothing to be done" (all files are up to date), because every output exists and is newer than its inputs, so no rule needs to run.
+4. After changing K in `sessionA.py`: only `session_a` reruns (and `all` is just the final target), because `sessionA.py` is one of its inputs and is now newer than `results/A_metrics.csv`. `fetch` is not rerun because it has no inputs and its output `data/concrete.csv` still exists, and `session_b` is not rerun because it does not depend on `sessionA.py` or on the concrete data.
