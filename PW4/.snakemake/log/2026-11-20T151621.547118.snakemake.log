@@ -1,0 +1,67 @@
+Assuming unrestricted shared filesystem usage.
+
+SNAKEMAKE
+=========
+  Date: 2026-11-20 15:16:21
+  Workflow ID: fade2cfa-e846-451e-8af3-9042f8ef4909
+  Platform: Linux-7.0.0-38-generic-x86_64-with-glibc2.43
+  Host: isfandiyar-HP-250R-15-6-inch-G9-Notebook-PC
+  User: isfandiyar
+  Snakemake version: 9.22.0
+  Python version: 3.11.16 (main, Sep  2 2026, 23:39:52) [GCC 15.3.0]
+  Command: /home/isfandiyar/miniconda3/envs/cspc/bin/snakemake --cores 1
+  Snakefile: /home/isfandiyar/Desktop/CSPC/PW4/Snakefile
+  Base directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Run directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Working directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Config file(s): []
+  Config MD5: 99914b932bd37a50b983c5e7c90ae93b
+
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job          count
+---------  -------
+session_a        1
+session_b        1
+all              1
+total            3
+
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Nov 20 15:16:21 2026]
+localrule session_a:
+    input: data/concrete.csv, sessionA.py
+    output: results/A_metrics.csv
+    jobid: 1
+    reason: Missing output files: results/A_metrics.csv
+    resources: tmpdir=/tmp
+Select jobs to execute...
+[Fri Nov 20 15:16:24 2026]
+Finished jobid: 1 (Rule: session_a)
+1 of 3 steps (33%) done
+Execute 1 jobs...
+[Fri Nov 20 15:16:24 2026]
+localrule session_b:
+    input: sessionB.py
+    output: results/B_agreement.csv
+    jobid: 3
+    reason: Missing output files: results/B_agreement.csv
+    resources: tmpdir=/tmp
+[Fri Nov 20 15:16:26 2026]
+Finished jobid: 3 (Rule: session_b)
+2 of 3 steps (67%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Nov 20 15:16:26 2026]
+localrule all:
+    input: results/A_metrics.csv, results/B_agreement.csv
+    jobid: 0
+    reason: Input files updated by another job: results/A_metrics.csv, results/B_agreement.csv
+    resources: tmpdir=/tmp
+[Fri Nov 20 15:16:26 2026]
+Finished jobid: 0 (Rule: all)
+3 of 3 steps (100%) done
+Complete log(s): /home/isfandiyar/Desktop/CSPC/PW4/.snakemake/log/2026-11-20T151621.547118.snakemake.log

@@ -1,0 +1,79 @@
+Assuming unrestricted shared filesystem usage.
+
+SNAKEMAKE
+=========
+  Date: 2026-11-20 15:10:22
+  Workflow ID: c2c7df01-7d7e-4b71-a5fb-54647ee5deec
+  Platform: Linux-7.0.0-38-generic-x86_64-with-glibc2.43
+  Host: isfandiyar-HP-250R-15-6-inch-G9-Notebook-PC
+  User: isfandiyar
+  Snakemake version: 9.22.0
+  Python version: 3.11.16 (main, Sep  2 2026, 23:39:52) [GCC 15.3.0]
+  Command: /home/isfandiyar/miniconda3/envs/cspc/bin/snakemake --cores 1
+  Snakefile: /home/isfandiyar/Desktop/CSPC/PW4/Snakefile
+  Base directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Run directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Working directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Config file(s): []
+  Config MD5: 99914b932bd37a50b983c5e7c90ae93b
+
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job          count
+---------  -------
+fetch            1
+session_b        1
+session_a        1
+all              1
+total            4
+
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Nov 20 15:10:22 2026]
+localrule fetch:
+    output: data/concrete.csv
+    jobid: 2
+    reason: Missing output files: data/concrete.csv
+    resources: tmpdir=/tmp
+Select jobs to execute...
+[Fri Nov 20 15:10:32 2026]
+Finished jobid: 2 (Rule: fetch)
+1 of 4 steps (25%) done
+Execute 1 jobs...
+[Fri Nov 20 15:10:32 2026]
+localrule session_a:
+    input: data/concrete.csv, sessionA.py
+    output: results/A_metrics.csv
+    jobid: 1
+    reason: Missing output files: results/A_metrics.csv; Input files updated by another job: data/concrete.csv
+    resources: tmpdir=/tmp
+Select jobs to execute...
+RuleException:
+CalledProcessError in file "/home/isfandiyar/Desktop/CSPC/PW4/Snakefile", line 15:
+Command 'set -euo pipefail;  python sessionA.py' returned non-zero exit status 1.
+[Fri Nov 20 15:10:33 2026]
+Error in rule session_a:
+    message: None
+    jobid: 1
+    input: data/concrete.csv, sessionA.py
+    output: results/A_metrics.csv
+    shell:
+        python sessionA.py
+        (command exited with non-zero exit code)
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look below for error messages
+[Fri Nov 20 15:10:33 2026]
+Error in rule session_a:
+    message: None
+    jobid: 1
+    input: data/concrete.csv, sessionA.py
+    output: results/A_metrics.csv
+    shell:
+        python sessionA.py
+        (command exited with non-zero exit code)
+Complete log(s): /home/isfandiyar/Desktop/CSPC/PW4/.snakemake/log/2026-11-20T151021.920263.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.

@@ -1,0 +1,66 @@
+Assuming unrestricted shared filesystem usage.
+
+SNAKEMAKE
+=========
+  Date: 2026-11-20 15:11:24
+  Workflow ID: 75db654b-099f-4c54-a610-6fca8bdd00e3
+  Platform: Linux-7.0.0-38-generic-x86_64-with-glibc2.43
+  Host: isfandiyar-HP-250R-15-6-inch-G9-Notebook-PC
+  User: isfandiyar
+  Snakemake version: 9.22.0
+  Python version: 3.11.16 (main, Sep  2 2026, 23:39:52) [GCC 15.3.0]
+  Command: /home/isfandiyar/miniconda3/envs/cspc/bin/snakemake --cores 1
+  Snakefile: /home/isfandiyar/Desktop/CSPC/PW4/Snakefile
+  Base directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Run directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Working directory: /home/isfandiyar/Desktop/CSPC/PW4
+  Config file(s): []
+  Config MD5: 99914b932bd37a50b983c5e7c90ae93b
+
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job          count
+---------  -------
+session_a        1
+session_b        1
+all              1
+total            3
+
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Nov 20 15:11:24 2026]
+localrule session_a:
+    input: data/concrete.csv, sessionA.py
+    output: results/A_metrics.csv
+    jobid: 1
+    reason: Missing output files: results/A_metrics.csv
+    resources: tmpdir=/tmp
+RuleException:
+CalledProcessError in file "/home/isfandiyar/Desktop/CSPC/PW4/Snakefile", line 15:
+Command 'set -euo pipefail;  python sessionA.py' returned non-zero exit status 1.
+[Fri Nov 20 15:11:24 2026]
+Error in rule session_a:
+    message: None
+    jobid: 1
+    input: data/concrete.csv, sessionA.py
+    output: results/A_metrics.csv
+    shell:
+        python sessionA.py
+        (command exited with non-zero exit code)
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look below for error messages
+[Fri Nov 20 15:11:24 2026]
+Error in rule session_a:
+    message: None
+    jobid: 1
+    input: data/concrete.csv, sessionA.py
+    output: results/A_metrics.csv
+    shell:
+        python sessionA.py
+        (command exited with non-zero exit code)
+Complete log(s): /home/isfandiyar/Desktop/CSPC/PW4/.snakemake/log/2026-11-20T151124.118385.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
