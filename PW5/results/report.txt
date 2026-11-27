@@ -1,0 +1,4 @@
+data/seismogram_A.csv: P at 108.4 s, S at 144.1 s, distance 306 km, magnitude 6.7.
+data/seismogram_B.csv: P at 84.2 s, S at 102.4 s, distance 156 km, magnitude 5.4.
+Closer: data/seismogram_B.csv
+Stronger: data/seismogram_A.csv

@@ -472,3 +472,147 @@ Command reproducing all of PW4: `snakemake --cores 1`
 2. After deleting `data/` and `results/` and running `snakemake --cores 1`: all four rules run (`fetch` creates `data/concrete.csv`, `session_a` and `session_b` create the two CSV files in `results/`, and `all` is done when both exist). Snakemake created the missing folders itself.
 3. Running the same command again: Snakemake reports "Nothing to be done" (all files are up to date), because every output exists and is newer than its inputs, so no rule needs to run.
 4. After changing K in `sessionA.py`: only `session_a` reruns (and `all` is just the final target), because `sessionA.py` is one of its inputs and is now newer than `results/A_metrics.csv`. `fetch` is not rerun because it has no inputs and its output `data/concrete.csv` still exists, and `session_b` is not rerun because it does not depend on `sessionA.py` or on the concrete data.
+
+
+
+
+
+
+
+## PW5 - Signal Processing: Where Was the Earthquake, and How Strong?
+
+### What I did
+
+I analysed two seismograms (A and B) from a station with three channels: Z (vertical), N (north-south) and E (east-west), sampled at 100 Hz. Using only the recording, I found the P and S arrival times, the distance to the earthquake and its magnitude. At the end, I put everything in a Snakemake pipeline.
+
+### How to run
+
+```bash
+conda activate cspc
+cd PW5
+python steps.py          # steps 1-8 on seismogram A, saves figures/
+snakemake --cores 1      # steps 9-10: analyse.py -> report.py
+```
+
+### Step 1 - Look at the record
+
+![Three channels](PW5/figures/step1_channels.png)
+![First 60 s](PW5/figures/step1_zoom60s.png)
+
+**What I see:** The record starts with small shaking, then a bigger shaking arrives, and later a long, slow shaking. The first weaker shaking (P-wave) is clearest on **Z** (vertical). The later, stronger shaking (S-wave) is largest on **N and E** (horizontal).
+
+**Is the station still before the earthquake?** No. In the first 60 s the signal is small but never zero. This is the background noise of the Earth (mostly ocean waves) and of the instrument.
+
+### Step 2 - The spectrum
+
+![Spectrum against index](PW5/figures/step2a_index.png)
+![Spectrum against frequency](PW5/figures/step2a_freq.png)
+
+**What does `fftfreq` add?** The FFT only gives numbers in an array. `fftfreq` tells which frequency in Hz belongs to each number, so the x-axis has a physical meaning.
+
+**Why is the spectrum mirrored around 0 Hz?** The signal is real (it has no imaginary part). For a real signal, the value at -f is the complex conjugate of the value at +f, so the amplitudes are equal. This is why the amplitude is multiplied by 2 for the positive side, and divided by N so it does not depend on the record length.
+
+![Log-log spectra](PW5/figures/step2b_loglog.png)
+
+**Background noise:** The quiet part is strongest at about **<fill from your plot, e.g. 0.1-0.3 Hz>**. This is the microseism, made by ocean waves hitting the coasts.
+
+**Earthquake energy:** The earthquake adds most of its energy in the band about **<fill from your plot, e.g. 0.5-5 Hz>**.
+
+### Step 3 - Inverse transform and manual band-pass filter
+
+`np.allclose(np.fft.ifft(np.fft.fft(Z)).real, Z)` gives **True**.
+
+**Why does filtering depend on this?** We delete frequencies in the frequency domain, and then we must come back to a time signal. This is only possible because the inverse FFT undoes the FFT exactly, so the only change comes from the frequencies we removed.
+
+**Cut-offs:** I used **a = 0.5 Hz** and **b = 10 Hz**. The lower cut-off is above the microseism noise seen in the quiet spectrum, so the noise is removed. The upper cut-off is above the band where the earthquake has energy, so only high-frequency noise is removed.
+
+![Filtered Z](PW5/figures/step3b_filtered.png)
+![What was removed](PW5/figures/step3c_removed.png)
+
+**What is in "Z - clean":** I recognise **<the slow regular oscillation of the microseism and small fast noise; adapt to your plot>**. There is no clear earthquake shape, so the filter kept the earthquake.
+
+### Step 4 - The envelope
+
+![Envelopes](PW5/figures/step4_envelopes.png)
+![Three window lengths](PW5/figures/step4_windows.png)
+
+**Window too short (0.05 s):** The envelope is jagged and still follows single waves, so it is hard to see one clear start of the shaking.
+
+**Window too long (5 s):** The envelope is smeared. The shaking looks like it starts earlier and rises slowly, so the arrival times are not precise.
+
+I used **0.5 s** as a compromise.
+
+### Step 5 - Arrival times
+
+![Arrivals](PW5/figures/step5_arrivals.png)
+
+- tP = first time the Z envelope is above 5 % of its maximum = **<tP> s**
+- tS = first time after tP + 2 s that the horizontal envelope is above 10 % of its maximum = **<tS> s**
+- Time of the horizontal maximum (`find_peaks`) = **<t_max> s**, which is **<t_max - tS> s** after tS.
+
+**Why would the maximum give a wrong distance?** Both waves leave the source at the same moment, so the distance depends on when each wave **starts** to arrive. The maximum comes later than the start, and the delay is not the same for P and S. This would change tS - tP, and R would be wrong.
+
+### Step 6 - Distance
+
+```
+tS - tP = R (1/vS - 1/vP)   =>   R = (tS - tP) / (1/vS - 1/vP)
+```
+
+with vP = 6.2 km/s and vS = 3.6 km/s. Here 1/vS - 1/vP = 0.1165 s/km.
+
+**R = <R> km.**
+
+**Effect of 1 s error in tS:** dR = 1 s / 0.1165 s/km = **8.6 km**.
+
+**Origin time:** t0 = tP - R/vP = **<t0> s** after the start of the record.
+
+### Step 7 - Spectrogram
+
+![Spectrogram](PW5/figures/step7_spectrogram.png)
+
+- The **P-wave** arrives first, with the **highest frequencies**.
+- The **S-wave** arrives next, with lower frequencies and more energy.
+- The **surface waves** arrive last, with the **lowest frequencies**, and last a long time.
+
+**What does the spectrogram show that the single spectrum cannot?** The single spectrum tells which frequencies exist in the whole record, but not when they happen. The spectrogram shows frequency and time together, so we can see which wave arrives when and with what frequencies.
+
+### Step 8 - Magnitude
+
+```
+M = (log10(PGV) + log10(R) + 1.0) / 0.55
+```
+
+PGV = maximum of sqrt(N^2 + E^2) on the **raw** data, in cm/s (multiplied by 100 from m/s).
+
+**PGV = <PGV> cm/s, M = <M>.**
+
+**Why is log10(R) in the formula?** Waves get weaker with distance. A far earthquake gives a smaller ground motion than a close one of the same size. The term log10(R) corrects for this. If I ignored it, an earthquake recorded twice as far away would look smaller: M would be too low by log10(2) / 0.55 = **0.55 units**.
+
+**PGV for one magnitude unit more at the same distance:** M increases by 1, so log10(PGV) increases by 0.55. PGV is multiplied by 10^0.55 = **about 3.5**.
+
+### Step 9 - The whole system
+
+`analyse.py` has one function `analyse(csv_file)` with steps 3-8. It runs on both records without any change between them and writes `results/events.csv`. `report.py` reads this table and writes `results/report.txt`.
+
+| Earthquake | tP (s) | tS (s) | R (km) | PGV (cm/s) | M |
+|---|---|---|---|---|---|
+| A | | | | | |
+| B | | | | | |
+
+**Which earthquake was closer?** **<A or B>**, because it has the smaller R (smaller tS - tP).
+
+**Which was stronger?** **<A or B>**, because it has the larger magnitude M.
+
+### Step 10 - Snakemake
+
+The `Snakefile` has three rules: `analyse` (both data files + `analyse.py` -> `results/events.csv`), `report` (`results/events.csv` + `report.py` -> `results/report.txt`) and `all`.
+
+**(a)** After deleting `results/`, `snakemake --cores 1` ran both rules and created the results.
+
+**(b)** Running it again: Snakemake says **"Nothing to be done"**. All outputs already exist and are newer than their inputs, so there is nothing to recompute.
+
+**(c)** After changing only the wording in `report.py`: only the rule **`report`** reruns, because only its input script changed. `events.csv` is still up to date.
+
+**(d)** After changing the cut-off `b` in `analyse.py`: **both `analyse` and `report`** rerun. `analyse` reruns because its script changed, and then `events.csv` is new, so `report` must run again because it depends on it.
+
+**Why is the difference with (c) what we want from a pipeline?** A pipeline only recomputes what is affected by a change. A change in wording does not repeat the long analysis, but a change in the science updates everything that depends on it. This saves time and makes sure the final results are never out of date.
